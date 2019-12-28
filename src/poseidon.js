@@ -83,7 +83,7 @@ function mix(state, M) {
     for (let i=0; i<state.length; i++) state[i] = newState[i];
 }
 
-exports.createHash = (t, nRoundsF, nRoundsP, seed) => {
+exports.createPermutation = (t, nRoundsF, nRoundsP, seed) => {
 
     if (typeof seed === "undefined") seed = SEED;
     if (typeof nRoundsF === "undefined") nRoundsF = NROUNDSF;
@@ -109,8 +109,13 @@ exports.createHash = (t, nRoundsF, nRoundsP, seed) => {
             }
             mix(state, M);
         }
-        return F.affine(state[0]);
+        return state.map(F.affine);
     };
 };
 
-
+exports.createHash = (t, nRoundsF, nRoundsP, seed) => {
+    return function(inputs) {
+      const hasher = exports.createPermutation(t, nRoundsF, nRoundsP, seed);
+      return hasher(inputs)[0];
+    };
+};
