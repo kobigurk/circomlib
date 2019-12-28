@@ -50,6 +50,7 @@ describe("Poseidon test", function() {
 
 describe("Poseidon circuit test", function () {
     let circuit;
+    let circuitStrict;
 
     this.timeout(100000);
 
@@ -64,7 +65,13 @@ describe("Poseidon circuit test", function () {
 
         circuit = new snarkjs.Circuit(cirDef);
 
-        console.log("Poseidon constraints: " + circuit.nConstraints);
+        console.log("Poseidon cipher success flag constraints: " + circuit.nConstraints);
+
+        const cirDefStrict = await compiler(path.join(__dirname, "circuits", "poseidoncipherstrict_test.circom"));
+
+        circuitStrict = new snarkjs.Circuit(cirDefStrict);
+
+        console.log("Poseidon cipher strict constraints: " + circuitStrict.nConstraints);
 
         senderKeypair = poseidoncipher.generateKeyPair();
         receiverKeypair = poseidoncipher.generateKeyPair();
@@ -79,7 +86,7 @@ describe("Poseidon circuit test", function () {
         decrypted = poseidoncipher.decrypt(receiverKeypair.privateKey, senderKeypair.publicKey, encrypted.nonce, encrypted.length, encrypted.ciphertext);
     });
 
-    it("Should decrypt and match native implementation", async () => {
+    it("Should decrypt with success flag and match native implementation", async () => {
         const w = circuit.calculateWitness({
           ciphertext: encrypted.ciphertext,
           sender_public_key: encrypted.senderPublicKey,
@@ -90,6 +97,24 @@ describe("Poseidon circuit test", function () {
 
         for (let i = 0; i < length; i++) {
           const res = w[circuit.getSignalIdx(`main.decrypted_message[${i}]`)];
+          assert.equal(res.toString(), decrypted[i].toString());
+        }
+
+        const res = w[circuit.getSignalIdx(`main.success`)];
+        assert.equal(res.toString(), '1');
+    });
+
+    it("Should decrypt with strict and match native implementation", async () => {
+        const w = circuitStrict.calculateWitness({
+          ciphertext: encrypted.ciphertext,
+          sender_public_key: encrypted.senderPublicKey,
+          nonce: encrypted.nonce,
+          receiver_private_key: receiverKeypair.privateKey,
+        });
+        assert(circuitStrict.checkWitness(w));
+
+        for (let i = 0; i < length; i++) {
+          const res = w[circuitStrict.getSignalIdx(`main.decrypted_message[${i}]`)];
           assert.equal(res.toString(), decrypted[i].toString());
         }
     });
