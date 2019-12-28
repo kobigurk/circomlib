@@ -107,7 +107,6 @@ template PoseidonCipher_with_success_flag(length, nRoundsF, nRoundsP) {
   component success_check = IsZero();
   signal output success;
 
-  length_rounded_to_3 - length === 3 - (length % 3);
   var success_length = length_rounded_to_3 - length + 1;
   component successes[success_length];
   var success_index = 0;
